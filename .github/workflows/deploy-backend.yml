@@ -8,27 +8,34 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Deploy PHP API to Hostinger
+  push-php:
+    name: Push PHP files to deploy branch
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout main branch
         uses: actions/checkout@v4
 
-      - name: Deploy PHP files via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          port: 21
-          local-dir: backend/api/
-          server-dir: public_html/api/
-          dangerous-clean-slate: false
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/*.md
-            **/schema.sql
-            **/.env.php
+      - name: Push PHP files to deploy branch
+        run: |
+          # Configure git
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch and checkout deploy branch
+          git fetch origin deploy
+          git checkout deploy
+
+          # Sync PHP api files into /api folder
+          mkdir -p api
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='*.md' \
+            --exclude='schema.sql' \
+            --exclude='.env.php' \
+            backend/api/ ./api/
+
+          # Commit and push
+          git add -A
+          git diff --cached --quiet || git commit -m "deploy: backend update from $(git rev-parse --short main)"
+          git push origin deploy

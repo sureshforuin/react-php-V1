@@ -8,12 +8,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
-    name: Build React & Deploy to Hostinger
+  build-and-push:
+    name: Build React & Push to deploy branch
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout main branch
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -21,26 +21,29 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: Install & Build
         working-directory: frontend
-        run: npm install
+        run: |
+          npm install
+          npm run build
 
-      - name: Build React app
-        working-directory: frontend
-        run: npm run build
+      - name: Push dist to deploy branch
+        run: |
+          # Configure git
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Deploy to Hostinger via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          port: 21
-          local-dir: frontend/dist/
-          server-dir: public_html/
-          dangerous-clean-slate: false
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            api/**
+          # Fetch and checkout deploy branch
+          git fetch origin deploy
+          git checkout deploy
+
+          # Copy built files to root of deploy branch (keep /api separate)
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='api/' \
+            frontend/dist/ ./
+
+          # Commit and push
+          git add -A
+          git diff --cached --quiet || git commit -m "deploy: frontend build from $(git rev-parse --short main)"
+          git push origin deploy
