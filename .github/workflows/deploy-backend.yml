@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'backend/**'           # Auto-triggers on backend changes
-  workflow_dispatch:           # Manual trigger from GitHub Actions tab
+      - 'backend/**'
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -13,25 +13,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout source
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Setup SSH key
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
-
-      # 3. Sync PHP files to Hostinger (no build step needed for PHP)
-      - name: Deploy PHP via rsync
-        run: |
-          rsync -avz --delete \
-            --exclude='.env' \
-            --exclude='*.md' \
-            --exclude='schema.sql' \
-            -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
-            backend/api/ \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/public_html/api/
+      - name: Deploy PHP files via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "backend/api/*"
+          target: "public_html/api/"
+          strip_components: 2
+          rm: false

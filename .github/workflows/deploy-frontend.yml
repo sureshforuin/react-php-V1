@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'frontend/**'          # Auto-triggers on frontend changes
-  workflow_dispatch:           # Manual trigger from GitHub Actions tab
+      - 'frontend/**'
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -13,44 +13,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout source
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Set up Node.js with npm cache
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
-      # 3. Install dependencies
       - name: Install dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install
 
-      # 4. Build (tests skipped — no test script in build)
       - name: Build React app
         working-directory: frontend
         run: npm run build
-        # VITE_API_URL is baked in from .env.production automatically by Vite.
-        # To override it per-environment, uncomment the line below:
-        # env:
-        #   VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
-      # 5. Deploy build output to Hostinger via SSH/rsync
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
-
-      - name: Deploy via rsync
-        run: |
-          rsync -avz --delete \
-            --exclude='api/' \
-            -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
-            frontend/dist/ \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/public_html/
+      - name: Deploy to Hostinger via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "frontend/dist/*"
+          target: "public_html/"
+          strip_components: 2
+          rm: false
