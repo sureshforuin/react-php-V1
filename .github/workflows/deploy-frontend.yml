@@ -1,11 +1,11 @@
 name: Deploy Frontend
 
-# Triggers ONLY when files inside /frontend change on the main branch
 on:
   push:
     branches: [main]
     paths:
-      - 'frontend/**'
+      - 'frontend/**'          # Auto-triggers on frontend changes
+  workflow_dispatch:           # Manual trigger from GitHub Actions tab
 
 jobs:
   build-and-deploy:
@@ -50,6 +50,7 @@ jobs:
       - name: Deploy via rsync
         run: |
           rsync -avz --delete \
+            --exclude='api/' \
             -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
             frontend/dist/ \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/public_html/
