@@ -7,8 +7,7 @@
 declare(strict_types=1);
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-// Replace * with your actual domain in production, e.g. https://yourdomain.com
-header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Origin: https://app.creyaengineering.com');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json; charset=UTF-8');
@@ -27,9 +26,8 @@ require_once __DIR__ . '/controllers/UserController.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-// Strip /api prefix if present (Hostinger serves via /api subfolder;
-// local dev hits /api/health directly via router.php)
-$uri = preg_replace('#^/api#', '', $uri);
+// No /api prefix needed — this PHP lives at the root of api.medalya.in
+// Strip trailing slash, default to /
 $uri = rtrim($uri, '/') ?: '/';
 
 // Extract ID segment: /users/5 → $resource = users, $id = 5

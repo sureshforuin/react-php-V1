@@ -8,34 +8,39 @@ on:
   workflow_dispatch:
 
 jobs:
-  push-php:
-    name: Push PHP files to deploy branch
+  deploy:
+    name: Deploy PHP API to api.medalya.in
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout main branch
+      - name: Checkout main
         uses: actions/checkout@v4
 
-      - name: Push PHP files to deploy branch
+      - name: Push backend to deploy branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Configure git
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Fetch and checkout deploy branch
           git fetch origin deploy
           git checkout deploy
 
-          # Sync PHP api files into /api folder
-          mkdir -p api
+          # Sync PHP files into /api-deploy folder in the deploy branch
+          mkdir -p api-deploy
           rsync -av --delete \
             --exclude='.git' \
             --exclude='*.md' \
             --exclude='schema.sql' \
             --exclude='.env.php' \
-            backend/api/ ./api/
+            backend/api/ ./api-deploy/
 
-          # Commit and push
           git add -A
-          git diff --cached --quiet || git commit -m "deploy: backend update from $(git rev-parse --short main)"
+          git diff --cached --quiet || git commit -m "deploy: backend $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           git push origin deploy
+
+      - name: Trigger Hostinger pull + copy to subdomain
+        run: |
+          curl -s -X POST https://app.medalya.in/deploy.php \
+            -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
+            -H "X-Deploy-Target: backend"

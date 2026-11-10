@@ -8,12 +8,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-push:
-    name: Build React & Push to deploy branch
+  build-and-deploy:
+    name: Build React & Deploy to app.medalya.in
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout main branch
+      - name: Checkout main
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -27,23 +27,28 @@ jobs:
           npm install
           npm run build
 
-      - name: Push dist to deploy branch
+      - name: Push dist/ to deploy branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Configure git
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Fetch and checkout deploy branch
           git fetch origin deploy
           git checkout deploy
 
-          # Copy built files to root of deploy branch (keep /api separate)
+          # Sync React build to root (exclude backend folder)
           rsync -av --delete \
             --exclude='.git' \
-            --exclude='api/' \
+            --exclude='api-deploy/' \
+            --exclude='deploy.php' \
             frontend/dist/ ./
 
-          # Commit and push
           git add -A
-          git diff --cached --quiet || git commit -m "deploy: frontend build from $(git rev-parse --short main)"
+          git diff --cached --quiet || git commit -m "deploy: frontend $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           git push origin deploy
+
+      - name: Trigger Hostinger pull
+        run: |
+          curl -s -X POST https://app.medalya.in/deploy.php \
+            -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}"
