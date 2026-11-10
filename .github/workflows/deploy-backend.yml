@@ -16,14 +16,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy PHP files via SCP
-        uses: appleboy/scp-action@v0.1.7
+      - name: Deploy PHP files via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 65002
-          source: "backend/api/*"
-          target: "public_html/api/"
-          strip_components: 2
-          rm: false
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          port: 21
+          local-dir: backend/api/
+          server-dir: public_html/api/
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/*.md
+            **/schema.sql
+            **/.env.php
