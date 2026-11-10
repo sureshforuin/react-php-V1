@@ -9,8 +9,10 @@ on:
 
 jobs:
   deploy:
-    name: Deploy PHP API to api.medalya.in
+    name: Deploy PHP API to api.creyaengineering.com
     runs-on: ubuntu-latest
+    permissions:
+      contents: write        # allows github-actions[bot] to push to deploy branch
 
     steps:
       - name: Checkout main
@@ -41,6 +43,6 @@ jobs:
 
       - name: Trigger Hostinger pull + copy to subdomain
         run: |
-          curl -s -X POST https://app.medalya.in/deploy.php \
+          curl -s -X POST https://app.creyaengineering.com/deploy.php \
             -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
             -H "X-Deploy-Target: backend"
