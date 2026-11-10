@@ -1,0 +1,37 @@
+name: Deploy Backend
+
+# Triggers ONLY when files inside /backend change on the main branch
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    name: Deploy PHP API to Hostinger
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout source
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup SSH key
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      # 3. Sync PHP files to Hostinger (no build step needed for PHP)
+      - name: Deploy PHP via rsync
+        run: |
+          rsync -avz --delete \
+            --exclude='.env' \
+            --exclude='*.md' \
+            --exclude='schema.sql' \
+            -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
+            backend/api/ \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/public_html/api/

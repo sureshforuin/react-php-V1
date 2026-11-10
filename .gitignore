@@ -1,0 +1,15 @@
+/dist
+/frontend/dist
+/tmp
+/frontend/node_modules
+/backend/logs/app.log
+npm-debug.log
+yarn-error.log
+
+.idea
+.DS_Store
+.project
+.settings
+
+
+*.iml

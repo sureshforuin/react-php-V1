@@ -1,0 +1,14 @@
+# ── SPA Routing fix ──────────────────────────────────────────────────────────
+# Without this, refreshing /users returns 404 from Apache.
+# Place this file in public_html/ (root of your domain on Hostinger).
+
+Options -MultiViews
+RewriteEngine On
+
+# Skip rewrite for real files and the /api directory
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI}      !^/api/
+
+# Send everything else to index.html
+RewriteRule ^ index.html [QSA,L]
